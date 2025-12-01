@@ -1,0 +1,156 @@
+-- Camera Shop Database Structure
+-- Created: 2025-05-16
+-- Database: camera_shop
+
+-- Drop database if exists and create a new one
+DROP DATABASE IF EXISTS camera_shop;
+CREATE DATABASE camera_shop CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE camera_shop;
+
+-- Users table
+CREATE TABLE users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(50) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  email VARCHAR(100) NOT NULL UNIQUE,
+  fullname VARCHAR(100) DEFAULT NULL,
+  phone VARCHAR(20) DEFAULT NULL,
+  address TEXT DEFAULT NULL,
+  role ENUM('admin', 'user') DEFAULT 'user',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Categories table with parent_id for hierarchical structure
+CREATE TABLE categories (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  parent_id INT DEFAULT NULL,
+  name VARCHAR(100) NOT NULL,
+  slug VARCHAR(100) NOT NULL UNIQUE,
+  description TEXT DEFAULT NULL,
+  image VARCHAR(255) DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (parent_id) REFERENCES categories(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Products table
+CREATE TABLE products (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  slug VARCHAR(255) NOT NULL UNIQUE,
+  description TEXT DEFAULT NULL,
+  price DECIMAL(15,2) NOT NULL DEFAULT 0,
+  sale_price DECIMAL(15,2) DEFAULT NULL,
+  image VARCHAR(255) DEFAULT NULL,
+  stock INT NOT NULL DEFAULT 0,
+  category_id INT NOT NULL,
+  featured TINYINT(1) NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Orders table - Fixed to allow NULL user_id without foreign key issues
+CREATE TABLE orders (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_code VARCHAR(20) NOT NULL UNIQUE,
+  user_id INT DEFAULT NULL,
+  customer_name VARCHAR(100) NOT NULL,
+  customer_email VARCHAR(100) NOT NULL,
+  customer_phone VARCHAR(20) NOT NULL,
+  customer_address TEXT NOT NULL,
+  total_amount DECIMAL(15,2) NOT NULL DEFAULT 0,
+  payment_method VARCHAR(50) NOT NULL DEFAULT 'cod',
+  status ENUM('pending', 'processing', 'shipping', 'completed', 'cancelled') DEFAULT 'pending',
+  notes TEXT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Order items table
+CREATE TABLE order_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT NOT NULL,
+  product_id INT DEFAULT NULL,
+  product_name VARCHAR(255) NOT NULL,
+  product_price DECIMAL(15,2) NOT NULL,
+  quantity INT NOT NULL DEFAULT 1,
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Settings table
+CREATE TABLE settings (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  setting_key VARCHAR(50) NOT NULL UNIQUE,
+  setting_value TEXT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Reviews table
+CREATE TABLE reviews (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  product_id INT NOT NULL,
+  user_id INT DEFAULT NULL,
+  rating INT NOT NULL DEFAULT 5,
+  review_text TEXT DEFAULT NULL,
+  reviewer_name VARCHAR(100) DEFAULT NULL,
+  reviewer_email VARCHAR(100) DEFAULT NULL,
+  status ENUM('pending', 'approved', 'rejected') DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Newsletters table
+CREATE TABLE newsletters (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  email VARCHAR(100) NOT NULL UNIQUE,
+  status ENUM('active', 'inactive') DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Insert default admin user (password: admin123)
+INSERT INTO users (username, password, email, fullname, role) VALUES 
+('admin', '$2y$10$Ug.QgM.H6hI1oKT3oxwSYOKTmQXsKCOVTa9QCbUk5wlvXJQFdwkDi', 'admin@example.com', 'Admin User', 'admin');
+
+-- Insert sample categories (parent categories first)
+INSERT INTO categories (id, parent_id, name, slug, description) VALUES
+(1, NULL, 'Máy ảnh', 'may-anh', 'Tất cả các loại máy ảnh'),
+(2, NULL, 'Phụ kiện', 'phu-kien', 'Phụ kiện cho máy ảnh');
+
+-- Insert sample subcategories
+INSERT INTO categories (parent_id, name, slug, description) VALUES
+(1, 'Máy ảnh DSLR', 'may-anh-dslr', 'Máy ảnh DSLR chuyên nghiệp'),
+(1, 'Máy ảnh Mirrorless', 'may-anh-mirrorless', 'Máy ảnh không gương lật'),
+(2, 'Ống kính', 'ong-kinh', 'Ống kính cho máy ảnh'),
+(2, 'Chân máy', 'chan-may', 'Chân máy và giá đỡ');
+
+-- Insert sample products
+INSERT INTO products (name, slug, description, price, sale_price, stock, category_id, featured) VALUES
+('Canon EOS 5D Mark IV', 'canon-eos-5d-mark-iv', 'Máy ảnh Canon EOS 5D Mark IV DSLR chuyên nghiệp', 45000000, 42000000, 10, 3, 1),
+('Nikon D850', 'nikon-d850', 'Máy ảnh Nikon D850 DSLR chuyên nghiệp', 48000000, NULL, 8, 3, 1),
+('Sony Alpha A7 III', 'sony-alpha-a7-iii', 'Máy ảnh Sony Alpha A7 III Mirrorless', 38000000, 36000000, 15, 4, 1),
+('Fujifilm X-T4', 'fujifilm-x-t4', 'Máy ảnh Fujifilm X-T4 Mirrorless', 34000000, 32000000, 12, 4, 1),
+('Canon RF 24-70mm f/2.8L IS USM', 'canon-rf-24-70mm', 'Ống kính Canon RF 24-70mm f/2.8L IS USM', 25000000, NULL, 6, 5, 0),
+('Nikon AF-S 70-200mm f/2.8E FL ED VR', 'nikon-af-s-70-200mm', 'Ống kính Nikon AF-S 70-200mm f/2.8E FL ED VR', 28000000, 26000000, 5, 5, 0),
+('Chân máy ảnh Manfrotto', 'chan-may-anh-manfrotto', 'Chân máy ảnh Manfrotto chuyên nghiệp', 3500000, 3200000, 20, 6, 0),
+('Đèn flash Godox V1', 'den-flash-godox-v1', 'Đèn flash Godox V1 cho máy ảnh', 2800000, NULL, 25, 6, 0);
+
+-- Insert default settings
+INSERT INTO settings (setting_key, setting_value) VALUES
+('site_title', 'STORE CAMERA - Cửa hàng máy ảnh chuyên nghiệp'),
+('site_description', 'Cung cấp các sản phẩm máy ảnh và phụ kiện chất lượng cao'),
+('contact_email', 'contact@storecamera.com'),
+('contact_phone', '0987654321'),
+('contact_address', '123 Đường ABC, Quận XYZ, TP. Hồ Chí Minh'),
+('enable_reviews', '1'),
+('shipping_fee', '30000'),
+('free_shipping_min', '1000000'),
+('payment_methods', 'COD,Bank Transfer');
+
