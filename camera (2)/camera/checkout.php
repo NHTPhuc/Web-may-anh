@@ -287,7 +287,7 @@ include_once TEMPLATE_PATH . 'header.php';
                                         tiền đã chuyển.</p>
                                     <p><strong>Thông tin tài khoản:</strong></p>
                                     <p>Ngân hàng: MB bank</p>
-                                    <p>Số tài khoản: 0862528965 </p>
+                                    <p>Số tài khoản: </p>
                                     <p>Chủ tài khoản: NGO HOAI TRONG PHUC</p>
                                 </div>
                                 <?php elseif ($method == 'Tiền mặt'): ?>
